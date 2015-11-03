@@ -1,11 +1,20 @@
 import os
 import time
+import mysql.connector
 
 os.system('modprobe w1-gpio')
 os.system('modprobe w1_therm')
 
 temp_sensor = '/sys/bus/w1/devices/28-0000055ab81d/w1_slave'
 
+# mysql db setup
+cnx = mysql.connector.connect(user='pi', database='temperatures')
+cursor = cnx.cursor()
+
+add_temperature = (	"INSERT INTO bedroom "
+			"(taken, temp_f) "
+			"VALUES (%s, %s);")
+			
 
 def temp_raw():
     f = open(temp_sensor, 'r')
@@ -28,6 +37,10 @@ def read_temp():
         temp_f = temp_c * 9.0 / 5.0 + 32.0
         return round(temp_f, 1)
 
-while True:
-    print(read_temp())
-    time.sleep(20)
+temp_info = (time.strftime('%Y-%m-%d %H:%M:%S'), read_temp())
+cursor.execute(add_temperature, temp_info)
+
+cnx.commit()
+
+cursor.close()
+cnx.close()
